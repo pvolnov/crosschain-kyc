@@ -8,9 +8,8 @@ The provided smart contracts facilitate a bridge between Polygon and any other b
 
 Url: https://cross-chain-kyc.h4n.app/
 
-<video width="720" height="480" controls>
-  <source src="kyc-demo.mp4" type="video/mp4">
-</video>
+
+https://github.com/pvolnov/crosschain-kyc/assets/41264338/4c6b0cdd-7540-4d90-8bc7-e344f114a083
 
 
 
