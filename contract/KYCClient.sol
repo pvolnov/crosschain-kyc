@@ -8,14 +8,24 @@ pragma solidity ^0.8.0;
     LayerZero Goerli
       lzChainId:10121 lzEndpoint:0xbfD2135BFfbb0B5378b56643c2Df8a87552Bfa23
       contract: 0xb8C2e35437295315244c2c747b7D18f0749011fA
+    Base (Testnet)
+      chainId: 10160
+      endpoint: 0x6aB5Ae6822647046626e83ee6dB8187151E1d5ab
 */
 
 contract KYCClient {
-    mapping(address => bool) public kycAccs;    
+    mapping(address => bool) public kycAccs; 
+    bytes trustedRemote;   
+    address trustedEndpoint;   
 
     function _nonblockingLzReceive(uint16, bytes memory, uint64, bytes memory _payload) internal {
        address data = abi.decode(_payload, (address));
        kycAccs[data] = true;
+    }
+
+    constructor(address _trustedRemote, address _trustedEndpoint) {
+      trustedRemote = abi.encode(_trustedRemote);
+      trustedEndpoint = _trustedEndpoint;
     }
 
     function _msgSender() internal view virtual returns (address) {
@@ -24,11 +34,9 @@ contract KYCClient {
 
     function lzReceive(uint16 _srcChainId, bytes calldata _srcAddress, uint64 _nonce, bytes calldata _payload) public virtual {
         // lzReceive must be called by the endpoint for security
-        require(_msgSender() == address(0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1), "LzApp: invalid endpoint caller");
-
-        // bytes memory trustedRemote = trustedRemoteLookup[_srcChainId];
+        require(_msgSender() == trustedEndpoint, "LzApp: invalid endpoint caller");
         // if will still block the message pathway from (srcChainId, srcAddress). should not receive message from untrusted remote.
-        // require(_srcAddress.length == trustedRemote.length && trustedRemote.length > 0 && keccak256(_srcAddress) == keccak256(trustedRemote), "LzApp: invalid source sending contract");
+        require(_srcAddress.length == trustedRemote.length && trustedRemote.length > 0 && keccak256(_srcAddress) == keccak256(trustedRemote), "LzApp: invalid source sending contract");
 
         _nonblockingLzReceive(_srcChainId, _srcAddress, _nonce, _payload);
     }

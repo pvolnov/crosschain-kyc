@@ -1,45 +1,62 @@
-# KYC Bridge between Polygon and Base
+# Crosschain KYC 
 
 ### Overview:
-The provided smart contracts facilitate a bridge between the Polygon network and another network referred to as "Base". This bridge is designed to enable KYC (Know Your Customer) verification status to be shared across chains.
+The provided smart contracts facilitate a bridge between Polygon and any other blockchain. This bridge is designed to enable KYC (Know Your Customer) verification status to be shared across chains.
 
 
 ## Demo
 
+Url: https://cross-chain-kyc.h4n.app/
+
 []
 
+## Endpoints
+
+KYC Proxy
+
+- Polygon (testnet):
+    - adress `0xeA155E0145ff4b240b65601aC55E3d7Ed8878c4E`
+
+KYC Client
+
+- Optimism (testnet): 
+    - adress `0xc3765f58a10c5636de7628ad434a08f34f2d0fdc`
+    - chain id: 10132
+- Base (testnet): 
+    - adress `0xd8425b5d9d5f0a4dd1db58bed2da8070bdc931fa`
+    - chain id: 10160
+
+
 ### Key Components:
-KYCProxy (For Polygon side)
-KYCClient (For Base side)
+KYCProxy contarct (For Polygon side)
+KYCClient contarct (For Base/Optimism side)
 
 ### 1. KYCProxy (For Polygon side):
 This contract serves as the KYC registry for users. When a user's KYC verification status is received from the Base network, it is stored within this contract.
 
 Functions:
 
-`_nonblockingLzReceive(...):` This function is internal and processes the incoming KYC verification data from Base.
+`_nonblockingLzReceive(...):` - processes the incoming KYC verification data from Base.
 
-`lzReceive(...):` This function is externally callable and ensures that only authorized endpoints can submit KYC verification data.
+`lzReceive(...):` - callable and ensures that only authorized LayerZero endpoints can submit KYC verification data.
 
-`hasValidToken(...):` This function allows external contracts or Dapps to check if a given address has a valid KYC token.
+`hasValidToken(...):` - allows external contracts or Dapps to check if a given address has a valid KYC token.
 
 ### 2. KYCClient (For Base side):
 This contract facilitates the sending of KYC verification data to the Polygon network.
 
 Functions:
 
-`constructor(...):` Sets the initial values for the LayerZero endpoint and the KYC validity checker.
+`setReceiverByChain(...):` - allows the contract owner to set or change the recipient contract address for each chain.
 
-`setReceiverByChain(...):` Allows the contract owner to set or change the recipient contract address for each chain.
-
-`sendKYCtoChain(...):` Users call this function to send their KYC status to Polygon. Before doing so, the contract checks if the user has a valid KYC token on the Base network.
+`sendKYCtoChain(...):` - users call this function to send their KYC status from Polygon to any chain. Before doing so, the contract checks if the user has a valid KYC token on Polygon network.
 
 ### How to Use:
 
 Sharing KYC Status to Base:
 
-Users with a valid KYC token on Polygon should interact with the KYCProxy contract.
-Call the `sendKYCtoChain(destChainId)` function, specifying the destination chain's ID (in this case, Polygon's ID).
+Users with a valid KYC token on Polygon should interact with the `KYCProxy` contract.
+Call the `sendKYCtoChain(destChainId)` function, specifying the destination chain's ID (in this case, Base's ID).
 If the user has a valid KYC token, their address will be sent to Base network and recorded in the KYCClient contract there.
 
 ### Interact with the KYCClient contract on Base (KYC DAO Interface).
@@ -61,7 +78,8 @@ interface IKycValidity {
 Call the `hasValidToken(address)` function, passing the address you wish to check.
 The function will return true if the address has a valid KYC token and false otherwise.
 
-### KYC Token Verification:
+## Security
 
- Before a user can send their KYC status to Base, the Polygon contract verifies that the user indeed has a valid KYC token. This helps ensure the authenticity and integrity of KYC data being sent to Base.
+The contact code and KYCProxy addresses are not changeable. Verification of KYC client is possible only after verification on the original network. This allows to use the contract made during the hackathon in production in any projects. 
 
+**KYC proof on KYC Client on any chain guarantees that the user has passed it.**
