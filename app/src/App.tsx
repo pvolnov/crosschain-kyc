@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import detectEthereumProvider from "@metamask/detect-provider";
 import { KycDaoIframeClient } from "@kycdao/widget";
 import { Contract, ethers } from "ethers";
@@ -17,8 +17,9 @@ import { getPolygonBalances } from "./covalent";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const initialState: { account: string | null; kyc: Record<Chain, boolean> } = {
+const initialState: { account: string | null; balance: string; kyc: Record<Chain, boolean> } = {
   account: null,
+  balance: "0",
   kyc: {
     [Chain.BASE]: false,
     [Chain.OPTIMISM]: false,
@@ -45,31 +46,35 @@ function App() {
   const [hasProvider, setHasProvider] = useState<boolean | null>(null);
   const [wallet, setWallet] = useState(initialState);
 
+  const fetchBalance = useCallback(async (addr: string) => {
+    const { data } = await getPolygonBalances(addr);
+    const ft = data.items.find((t: any) => t.native_token);
+    setWallet((state) => merge({}, state, { balance: ethers.formatEther(ft.balance) }));
+  }, []);
+
+  const fetchKYC = useCallback(async (addr: string) => {
+    const chains = [Chain.POLYGON, Chain.OPTIMISM, Chain.BASE];
+    for (const chain of chains) {
+      try {
+        const provider = new ethers.JsonRpcProvider(configs[chain].rpcUrls[0]);
+        const contract = new Contract(contracts[chain], ABI, provider);
+        const hasKYC = await contract.hasValidToken(addr);
+        setWallet((state) => merge({}, state, { kyc: { [chain]: hasKYC } }));
+      } catch (e) {
+        console.log(e);
+      }
+    }
+
+    // if (process.env.NODE_ENV === "development") {
+    //   setWallet((state) => merge({}, state, { kyc: { [Chain.POLYGON]: true } }));
+    // }
+  }, []);
+
   useEffect(() => {
-    const fetch = async () => {
-      if (wallet.account == null) return;
-
-      getPolygonBalances("0x8bfD164094aC262a51A895a99C25290a4B4E148E").then(console.log);
-
-      const chains = [Chain.POLYGON, Chain.OPTIMISM, Chain.BASE];
-      for (const chain of chains) {
-        try {
-          const provider = new ethers.JsonRpcProvider(configs[chain].rpcUrls[0]);
-          const contract = new Contract(contracts[chain], ABI, provider);
-          const hasKYC = await contract.hasValidToken(wallet.account);
-          setWallet((state) => merge({}, state, { kyc: { [chain]: hasKYC } }));
-        } catch (e) {
-          console.log(e);
-        }
-      }
-
-      if (process.env.NODE_ENV === "development") {
-        setWallet((state) => merge({}, state, { kyc: { [Chain.POLYGON]: true } }));
-      }
-    };
-
-    fetch();
-  }, [wallet.account]);
+    if (wallet.account == null) return;
+    fetchBalance(wallet.account);
+    fetchKYC(wallet.account);
+  }, [wallet.account, fetchKYC, fetchBalance]);
 
   useEffect(() => {
     const refreshAccounts = async (accounts: any) => {
@@ -112,7 +117,8 @@ function App() {
       }
 
       if (chain === Chain.POLYGON) {
-        iframeClient.open();
+        window.location.assign("https://kycdao.xyz/");
+        //iframeClient.open();
         return;
       }
 
@@ -141,13 +147,15 @@ function App() {
         return true;
       };
 
+      fetchBalance(wallet.account);
       await toast.promise(waitKYC(), {
         error: "Transaction failed",
         pending: "Wait while LayerZero processes the transaction...",
         success: `KYC in ${chain} has been claimed!`,
       });
-    } catch (e) {
+    } catch (e: any) {
       console.log(e);
+      toast("Failed! Open DevTool to look error");
     }
   };
 
@@ -196,6 +204,14 @@ function App() {
               <br />
               {wallet.account}
             </h3>
+          )}
+
+          {wallet.account && (
+            <h4 style={{ color: "#fff" }}>
+              Polygon balance:
+              <br />
+              {wallet.balance} MATIC
+            </h4>
           )}
         </div>
 

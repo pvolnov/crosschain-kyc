@@ -4,7 +4,7 @@ headers.set("Authorization", "Bearer cqt_rQTvyfqRFjYh9VFWTyDfgdxjWh3c"); // DEV 
 const endpoint = "https://api.covalenthq.com";
 
 export const getPolygonBalances = async (addr: string) => {
-  const res = await fetch(`${endpoint}/v1/matic-mainnet/address/${addr}/balances_v2/?nft=true`, {
+  const res = await fetch(`${endpoint}/v1/matic-mumbai/address/${addr}/balances_v2/?nft=true`, {
     method: "GET",
     headers: headers,
   });
